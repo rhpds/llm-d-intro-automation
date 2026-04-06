@@ -1,5 +1,11 @@
 channel: fast-3.x
 
+workbench:
+  opencode:
+    apiUrl: ""
+    apiKey: ""
+    modelName: ""
+
 llmD:
   namespace:
     create: true
