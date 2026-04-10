@@ -102,11 +102,7 @@ spec:
               mkdir -p /opt/app-root/src/.config/opencode
               cat > /opt/app-root/src/.config/opencode/opencode.json <<EOCFG
               {
-                "\$schema": "https://opencode.ai/config.json",
-                "tools": {
-                  "write": true,
-                  "bash": true
-                },
+                "\$schema": "https://opencode.ai/config.json"
                 "model": "lab/${OPENCODE_MODEL_NAME}",
                 "provider": {
                   "lab": {
@@ -122,8 +118,7 @@ spec:
                         "limit": {
                           "context": 32768,
                           "output": 4096
-                        },
-                        "toolCallSupport": true
+                        }
                       }
                     }
                   }
