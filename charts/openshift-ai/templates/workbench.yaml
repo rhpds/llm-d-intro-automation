@@ -1,0 +1,150 @@
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: opencode-config
+  namespace: llm-d-project
+  annotations:
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+type: Opaque
+stringData:
+  OPENCODE_API_URL: {{ .Values.workbench.opencode.apiUrl | quote }}
+  OPENCODE_API_KEY: {{ .Values.workbench.opencode.apiKey | quote }}
+  OPENCODE_MODEL_NAME: {{ .Values.workbench.opencode.modelName | quote }}
+---
+apiVersion: kubeflow.org/v1
+kind: Notebook
+metadata:
+  name: benchmark-analysis
+  namespace: llm-d-project
+  labels:
+    opendatahub.io/dashboard: "true"
+    opendatahub.io/odh-managed: "true"
+    app: benchmark-analysis
+  annotations:
+    opendatahub.io/image-display-name: "Code Server | Data Science | CPU | Python 3.12"
+    notebooks.opendatahub.io/inject-auth: "true"
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+spec:
+  template:
+    spec:
+      containers:
+        - name: benchmark-analysis
+          image: image-registry.openshift-image-registry.svc:5000/redhat-ods-applications/code-server-notebook:2025.2
+          env:
+            - name: NOTEBOOK_ARGS
+              value: |-
+                --ServerApp.port=8888
+                                  --ServerApp.token=''
+                                  --ServerApp.password=''
+                                  --ServerApp.base_url=/notebook/llm-d-project/benchmark-analysis
+                                  --ServerApp.quit_button=False
+            - name: PATH
+              value: /opt/app-root/src/.opencode/bin:/opt/app-root/bin:/opt/app-root/src/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+          envFrom:
+            - secretRef:
+                name: opencode-config
+          resources:
+            requests:
+              cpu: "2"
+              memory: 4Gi
+            limits:
+              cpu: "2"
+              memory: 4Gi
+          ports:
+            - containerPort: 8888
+              name: notebook-port
+              protocol: TCP
+          volumeMounts:
+            - name: benchmark-data
+              mountPath: /opt/app-root/src/benchmark-data
+            - name: opencode-install
+              mountPath: /opt/app-root/src/.opencode
+            - name: opencode-config-dir
+              mountPath: /opt/app-root/src/.config/opencode
+            - name: shm
+              mountPath: /dev/shm
+            - name: trusted-ca
+              mountPath: /etc/pki/tls/custom-certs/ca-bundle.crt
+              subPath: ca-bundle.crt
+              readOnly: true
+          livenessProbe:
+            httpGet:
+              path: /notebook/llm-d-project/benchmark-analysis/api
+              port: notebook-port
+              scheme: HTTP
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /notebook/llm-d-project/benchmark-analysis/api
+              port: notebook-port
+              scheme: HTTP
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            failureThreshold: 3
+          workingDir: /opt/app-root/src
+      initContainers:
+        - name: install-opencode
+          image: registry.access.redhat.com/ubi9/ubi
+          env:
+            - name: HOME
+              value: /opt/app-root/src
+          envFrom:
+            - secretRef:
+                name: opencode-config
+          command:
+            - /bin/sh
+            - -c
+            - |
+              curl -fsSL https://opencode.ai/install | bash -s -- --no-modify-path
+              mkdir -p /opt/app-root/src/.config/opencode
+              cat > /opt/app-root/src/.config/opencode/opencode.json <<EOCFG
+              {
+                "\$schema": "https://opencode.ai/config.json"
+                "model": "lab/${OPENCODE_MODEL_NAME}",
+                "provider": {
+                  "lab": {
+                    "npm": "@ai-sdk/openai-compatible",
+                    "name": "Lab Provider",
+                    "options": {
+                      "baseURL": "${OPENCODE_API_URL}",
+                      "apiKey": "${OPENCODE_API_KEY}"
+                    },
+                    "models": {
+                      "${OPENCODE_MODEL_NAME}": {
+                        "name": "${OPENCODE_MODEL_NAME}",
+                        "limit": {
+                          "context": 32768,
+                          "output": 4096
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+              EOCFG
+          volumeMounts:
+            - name: opencode-install
+              mountPath: /opt/app-root/src/.opencode
+            - name: opencode-config-dir
+              mountPath: /opt/app-root/src/.config/opencode
+      volumes:
+        - name: benchmark-data
+          persistentVolumeClaim:
+            claimName: benchmark-data
+        - name: opencode-install
+          emptyDir: {}
+        - name: opencode-config-dir
+          emptyDir: {}
+        - name: shm
+          emptyDir:
+            medium: Memory
+        - name: trusted-ca
+          configMap:
+            name: workbench-trusted-ca-bundle
+            items:
+              - key: ca-bundle.crt
+                path: ca-bundle.crt
+            optional: true
