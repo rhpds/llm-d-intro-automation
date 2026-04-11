@@ -11,7 +11,7 @@ spec:
   project: default
   source:
     path: charts/image-puller
-    repoURL: https://github.com/rh-aiservices-bu/rh1-llmd-lab-2026
+    repoURL: https://github.com/rhpds/llm-d-intro-automation
     targetRevision: HEAD
   syncPolicy:
     automated:

@@ -7,9 +7,11 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://github.com/rh-aiservices-bu/rh1-llmd-lab-2026
+    repoURL: https://github.com/rhpds/llm-d-intro-automation
     targetRevision: HEAD
     path: applications
+    directory:
+      recurse: false
   destination:
     namespace: openshift-gitops
     server: https://kubernetes.default.svc
