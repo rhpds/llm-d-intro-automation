@@ -10,6 +10,9 @@ spec:
     namespace: redhat-ods-operator
   project: default
   source:
+    helm:
+       values: |
+{{ .Values | toYaml | indent 9 }}
     path: charts/openshift-ai
     repoURL: https://github.com/rhpds/llm-d-intro-automation
     targetRevision: HEAD
