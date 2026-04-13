@@ -102,7 +102,7 @@ spec:
               mkdir -p /opt/app-root/src/.config/opencode
               cat > /opt/app-root/src/.config/opencode/opencode.json <<EOCFG
               {
-                "\$schema": "https://opencode.ai/config.json"
+                "\$schema": "https://opencode.ai/config.json",
                 "model": "lab/${OPENCODE_MODEL_NAME}",
                 "provider": {
                   "lab": {
