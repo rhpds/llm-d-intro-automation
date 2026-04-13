@@ -1,0 +1,6 @@
+---
+workbench:
+  opencode:
+    apiKey: fake
+    apiUrl: https://test/v1
+    modelName: test
