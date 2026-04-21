@@ -9,6 +9,11 @@ spec:
     name: in-cluster
     namespace: redhat-ods-operator
   project: default
+  ignoreDifferences:
+    - group: kubeflow.org
+      kind: Notebook
+      jsonPointers:
+        - /spec/template/spec/containers/0/env
   source:
     helm:
        values: |
